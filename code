@@ -1,0 +1,513 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Enum for Package Type (India or International)
+enum PackageType {
+    INDIA_TOUR,
+    INTERNATIONAL_TOUR
+};
+
+// Structure for India Package Specific Details
+struct IndiaPackageDetails {
+    char region[50];  // Region (North India, South India, etc.)
+    char transport_type[50];  // Type of transport used (Bus, Train, etc.)
+};
+
+// Structure for International Package Specific Details
+struct InternationalPackageDetails {
+    char visa_required[50];  // Yes/No or specific countries
+    char flight_details[200];  // International flight info
+    char currency[50];  // Local currency of the destination
+};
+
+// Structure for Package
+struct Package {
+    int package_id;
+    char name[100];
+    char destination[100];
+    char start_date[20];
+    char end_date[20];
+    float price;
+    int available_seats;
+    char description[500];
+    enum PackageType type;  // India or International package
+
+    // Union to store details based on package type
+    union {
+        struct IndiaPackageDetails india_details;
+        struct InternationalPackageDetails international_details;
+    } details;
+};
+
+// Structure for Customer
+struct Customer {
+    int customer_id;
+    char name[100];
+    char email[100];
+    char phone[20];
+    char address[200];
+    char password[50];
+    struct Customer* next;  // Linked list to manage customers
+};
+
+// Structure for Booking
+struct Booking {
+    int booking_id;
+    int customer_id;
+    int package_id;
+    char booking_date[20];
+    int number_of_people;
+    char status[20];  // E.g., "Confirmed", "Cancelled"
+};
+
+// Travel Node structure
+typedef struct Travel {
+    int travel_id;
+    char destination[30], start_date[15], end_date[15];
+    float cost;
+    struct Travel* next;
+} Travel;
+
+// Transportation Node structure
+typedef struct Node {
+    int id;
+    char vehicle[20], source[30], destination[30];
+    float fare;
+    struct Node* next;
+} Node;
+
+// Function Declarations
+void registerCustomer(struct Customer** customer_list, int* customer_count);
+struct Customer* loginCustomer(struct Customer* customer_list);
+void viewProfile(struct Customer* customer);
+void updateProfile(struct Customer* customer);
+void addPackage(struct Package* packages, int* package_count);
+void viewPackages(struct Package* packages, int package_count);
+void searchPackages(struct Package* packages, int package_count, const char* destination);
+void bookPackage(struct Package* packages, int package_count, struct Customer* customer, struct Booking* bookings, int* booking_count);
+void addTravel(Travel** head, int id, char dest[], char start[], char end[], float cost);
+void displayTravels(Travel* head);
+void add(Node** head, int id, char v[], char s[], char d[], float f);
+void display(Node* head);
+void issueManagement();
+void enquiryManagement();
+
+// Main Menu
+void displayMenu() {
+    printf("\n=========================\n");
+    printf("Tourism Management System\n");
+    printf("=========================\n");
+    printf("1. Customer Management\n");
+    printf("2. Package Management\n");
+    printf("3. Travel Management\n");
+    printf("4. Transportation Management\n");
+    printf("5. Issue Management\n");
+    printf("6. Enquiry Management\n");  
+    printf("7. Exit\n");
+    printf("=========================\n");
+    printf("Enter your choice: ");
+}
+
+// Main function
+int main() {
+    struct Customer* customer_list = NULL;
+    int customer_count = 0;
+
+    struct Package packages[100];
+    int package_count = 0;
+
+    struct Booking bookings[100];
+    int booking_count = 0;
+
+    Travel* travel_head = NULL;
+    Node* transport_head = NULL;
+
+    int choice;
+
+    // Predefine some packages (Indian and International)
+    struct Package indian_package1 = {1, "Golden Triangle", "Delhi, Agra, Jaipur", "2024-12-01", "2024-12-10", 500.00, 20, "Explore the cultural heritage of India, including Delhi, Agra, and Jaipur.", INDIA_TOUR, .details.india_details = {"North India", "Bus"}};
+    struct Package indian_package2 = {2, "South India Temples", "Chennai, Madurai, Kanyakumari", "2024-12-15", "2024-12-22", 450.00, 15, "Visit the famous temples and beaches of South India.", INDIA_TOUR, .details.india_details = {"South India", "Train"}};
+
+    struct Package international_package1 = {3, "Europe Highlights", "Paris, Rome, London", "2024-11-20", "2024-12-05", 1500.00, 10, "Experience the best of Europe: Paris, Rome, and London.", INTERNATIONAL_TOUR, .details.international_details = {"Yes (Schengen Visa)", "Round-trip flight from India", "Euro"}};
+    struct Package international_package2 = {4, "USA East Coast Tour", "New York, Washington DC, Niagara Falls", "2024-11-15", "2024-11-25", 2200.00, 8, "Visit iconic destinations on the USA East Coast.", INTERNATIONAL_TOUR, .details.international_details = {"Yes (US Visa)", "Round-trip flight from India", "USD"}};
+
+    // Add predefined packages to the array
+    packages[package_count++] = indian_package1;
+    packages[package_count++] = indian_package2;
+    packages[package_count++] = international_package1;
+    packages[package_count++] = international_package2;
+
+    while (1) {
+        displayMenu();
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1: // Customer Management
+                printf("\n1. Register\n2. Login\n3. View Profile\n4. Update Profile\n");
+                printf("Enter your choice: ");
+                scanf("%d", &choice);
+                
+                if (choice == 1) {
+                    registerCustomer(&customer_list, &customer_count);
+                } else if (choice == 2) {
+                    struct Customer* logged_in_customer = loginCustomer(customer_list);
+                    if (logged_in_customer != NULL) {
+                        printf("Logged in as %s\n", logged_in_customer->name);
+                    }
+                } else if (choice == 3) {
+                    struct Customer* logged_in_customer = loginCustomer(customer_list);
+                    if (logged_in_customer != NULL) {
+                        viewProfile(logged_in_customer);
+                    }
+                } else if (choice == 4) {
+                    struct Customer* logged_in_customer = loginCustomer(customer_list);
+                    if (logged_in_customer != NULL) {
+                        updateProfile(logged_in_customer);
+                    }
+                }
+                break;
+
+            case 2: // Package Management
+                printf("\n1. View Packages\n2. Search Packages\n3. Book Package\n");
+                printf("Enter your choice: ");
+                scanf("%d", &choice);
+                
+                if (choice == 1) {
+                    viewPackages(packages, package_count);
+                } else if (choice == 2) {
+                    char destination[100];
+                    printf("Enter destination to search for: ");
+                    scanf(" %[^\n]", destination);
+                    searchPackages(packages, package_count, destination);
+                } else if (choice == 3) {
+                    struct Customer* logged_in_customer = loginCustomer(customer_list);
+                    if (logged_in_customer != NULL) {
+                        bookPackage(packages, package_count, logged_in_customer, bookings, &booking_count);
+                    }
+                }
+                break;
+
+            case 3: // Travel Management
+                addTravel(&travel_head, 1, "Paris", "2024-11-20", "2024-11-30", 1200.50);
+                addTravel(&travel_head, 2, "London", "2024-12-05", "2024-12-15", 1500.00);
+                displayTravels(travel_head);
+                break;
+
+            case 4: // Transportation Management
+                add(&transport_head, 1, "Bus", "A", "B", 50.0);
+                add(&transport_head, 2, "Train", "C", "D", 100.0);
+                display(transport_head);
+                break;
+
+            case 5: // Issue Management
+                issueManagement();
+                break;
+
+            case 6: // Enquiry Management
+                enquiryManagement();
+                break;
+
+            case 7: // Exit
+                printf("Exiting the system. Goodbye!\n");
+                exit(0);
+
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    }
+
+    return 0;
+}
+
+// Customer Management Functions
+void registerCustomer(struct Customer** customer_list, int* customer_count) {
+    struct Customer* new_customer = (struct Customer*)malloc(sizeof(struct Customer));
+    new_customer->customer_id = (*customer_count) + 1;
+    printf("Enter your name: ");
+    scanf(" %[^\n]", new_customer->name);
+    printf("Enter your email: ");
+    scanf(" %[^\n]", new_customer->email);
+    printf("Enter your phone number: ");
+    scanf(" %[^\n]", new_customer->phone);
+    printf("Enter your address: ");
+    scanf(" %[^\n]", new_customer->address);
+    printf("Enter your password: ");
+    scanf(" %[^\n]", new_customer->password);
+    new_customer->next = *customer_list;
+    *customer_list = new_customer;
+    (*customer_count)++;
+    printf("Customer registration successful! Your customer ID is %d.\n", new_customer->customer_id);
+}
+
+struct Customer* loginCustomer(struct Customer* customer_list) {
+    char email[100], password[50];
+    printf("Enter your email: ");
+    scanf(" %[^\n]", email);
+    printf("Enter your password: ");
+    scanf(" %[^\n]", password);
+
+    struct Customer* temp = customer_list;
+    while (temp != NULL) {
+        if (strcmp(temp->email, email) == 0 && strcmp(temp->password, password) == 0) {
+            printf("Login successful! Welcome, %s.\n", temp->name);
+            return temp;  // Return the logged-in customer
+        }
+        temp = temp->next;
+    }
+    printf("This email is not registered. Please register first\n");
+    return NULL;  // Return NULL if login fails
+}
+
+
+void viewProfile(struct Customer* customer) {
+    if (customer != NULL) {
+        printf("\nCustomer Profile:\n");
+        printf("Name: %s\n", customer->name);
+        printf("Email: %s\n", customer->email);
+        printf("Phone: %s\n", customer->phone);
+        printf("Address: %s\n", customer->address);
+    }
+}
+
+void updateProfile(struct Customer* customer) {
+    if (customer != NULL) {
+        printf("Enter new phone number: ");
+        scanf(" %[^\n]", customer->phone);
+        printf("Enter new address: ");
+        scanf(" %[^\n]", customer->address);
+        printf("Profile updated successfully.\n");
+}
+}
+// Package Management Functions
+
+void viewPackages(struct Package* packages, int package_count) {
+    for (int i = 0; i < package_count; i++) {
+        struct Package p = packages[i];
+        printf("\nPackage ID: %d\n", p.package_id);
+        printf("Name: %s\n", p.name);
+        printf("Destination: %s\n", p.destination);
+        printf("Price: %.2f\n", p.price);
+        printf("Available Seats: %d\n", p.available_seats);
+    }
+}
+
+void searchPackages(struct Package* packages, int package_count, const char* destination) {
+    int found = 0;
+    for (int i = 0; i < package_count; i++) {
+        if (strstr(packages[i].destination, destination) != NULL) {
+            printf("\nPackage ID: %d\n", packages[i].package_id);
+            printf("Name: %s\n", packages[i].name);
+            printf("Destination: %s\n", packages[i].destination);
+            printf("Price: %.2f\n", packages[i].price);
+            printf("Available Seats: %d\n", packages[i].available_seats);
+            found = 1;
+        }
+    }
+    if (!found) {
+        printf("\nThis Package is not available.\n");  // If no package is found, print this message
+    }
+}
+
+void bookPackage(struct Package* packages, int package_count, struct Customer* customer, struct Booking* bookings, int* booking_count) {
+    // Check if customer is logged in
+    if (customer == NULL) {
+        printf("You need to login first to book a package.\n");
+        return;
+    }
+
+    // Proceed with package booking
+    int package_id;
+    printf("Enter the package ID to book: ");
+    scanf("%d", &package_id);
+
+    struct Package* selected_package = NULL;
+    for (int i = 0; i < package_count; i++) {
+        if (packages[i].package_id == package_id) {
+            selected_package = &packages[i];
+            break;
+        }
+    }
+
+    if (selected_package != NULL && selected_package->available_seats > 0) {
+        int number_of_people;
+        printf("Enter number of people: ");
+        scanf("%d", &number_of_people);
+        if (number_of_people <= selected_package->available_seats) {
+            selected_package->available_seats -= number_of_people;
+
+            // Create a booking entry
+            struct Booking new_booking = {
+                *booking_count + 1, 
+                customer->customer_id, 
+                selected_package->package_id, 
+                "2024-11-20", // Set appropriate date for booking
+                number_of_people,
+                "Confirmed"
+            };
+
+            bookings[*booking_count] = new_booking;
+            (*booking_count)++;
+
+            printf("Booking confirmed! Your booking ID is %d.\n", new_booking.booking_id);
+        } else {
+            printf("Not enough seats available.\n");
+        }
+    } else {
+        printf("Invalid package ID or no seats available.\n");
+    }
+}
+
+
+// Travel Management Functions
+void addTravel(Travel** head, int id, char dest[], char start[], char end[], float cost) {
+    Travel* newNode = (Travel*)malloc(sizeof(Travel));
+    newNode->travel_id = id;
+    strcpy(newNode->destination, dest);
+    strcpy(newNode->start_date, start);
+    strcpy(newNode->end_date, end);
+    newNode->cost = cost;
+    newNode->next = *head;
+    *head = newNode;
+}
+
+void displayTravels(Travel* head) {
+    while (head) {
+        printf("ID: %d, Destination: %s, Start: %s, End: %s, Cost: %.2f\n",
+               head->travel_id, head->destination, head->start_date, head->end_date, head->cost);
+        head = head->next;
+    }
+}
+
+// Transportation Management Functions
+Node* create(int id, char v[], char s[], char d[], float f) {
+    Node* n = (Node*)malloc(sizeof(Node));
+    n->id = id;
+    strcpy(n->vehicle, v);
+    strcpy(n->source, s);
+    strcpy(n->destination, d);
+    n->fare = f;
+    n->next = NULL;
+    return n;
+}
+
+void add(Node** head, int id, char v[], char s[], char d[], float f) {
+    Node* n = create(id, v, s, d, f);
+    Node* temp = *head;
+    if (!*head) *head = n;
+    else {
+        while (temp->next) temp = temp->next;
+        temp->next = n;
+    }
+}
+
+void display(Node* head) {
+    while (head) {
+        printf("ID: %d, Vehicle: %s, Source: %s, Destination: %s, Fare: %.2f\n",
+               head->id, head->vehicle, head->source, head->destination, head->fare);
+        head = head->next;
+    }
+}
+
+// Issue Management Functions
+void issueManagement() {
+    char *issues[] = {
+        "Delayed response from support team",
+        "Incorrect information on the website",
+        "Difficulty in booking tours",
+        "Unclear cancellation policy",
+        "High pricing concerns",
+        "Other issues (Miscellaneous)"
+    };
+    int numIssues = sizeof(issues) / sizeof(issues[0]);
+    int choice;
+
+    printf("Welcome to the Issue Management System\n");
+    printf("Please select the issue you are facing:\n");
+    for (int i = 0; i < numIssues; i++) {
+        printf("%d. %s\n", i + 1, issues[i]);
+    }
+    printf("Enter your choice (1-%d): ", numIssues);
+    scanf("%d", &choice);
+
+    if (choice < 1 || choice > numIssues) {
+        printf("Invalid choice. Please restart and try again.\n");
+        return;
+    }
+
+    if (choice == numIssues) {
+        char customIssue[256];
+        printf("You selected Miscellaneous.\n");
+        printf("Please describe your issue: ");
+        getchar(); // Clear the newline character from the input buffer
+        fgets(customIssue, sizeof(customIssue), stdin);
+        customIssue[strcspn(customIssue, "\n")] = '\0'; // Remove newline character from input
+        printf("Your issue has been recorded: %s\nWe will review it soon. Thanks for letting us know!\n", customIssue);
+    } else {
+        printf("You selected: %s\n", issues[choice - 1]);
+        printf("Your issue has been recorded. We will review it soon.\nThanks for letting us know!\n");
+    }
+}
+void enquiryManagement() {
+    char *enquiries[] = {
+        "Details about the itinerary",
+        "Payment confirmation status",
+        "Travel guide availability",
+        "Cancellation policies",
+        "Other enquiries (Miscellaneous)"
+    };
+    int numEnquiries = sizeof(enquiries) / sizeof(enquiries[0]);
+    int hasBooked, choice, packageID;
+
+    printf("\n--- Enquiry Management System ---\n");
+    printf("You can enquire about a package you have booked.\n");
+
+    // Check if user has booked a package
+    printf("Have you booked a package? (1 for Yes, 0 for No): ");
+    scanf("%d", &hasBooked);
+
+    if (hasBooked == 0) {
+        printf("You need to book a package before making an enquiry.\n");
+        return;
+    }
+
+    // Ask for Package ID
+    printf("Please enter the Package ID (1/2/3/4): ");
+    scanf("%d", &packageID);
+
+    // Validate Package ID
+    if (packageID < 1 || packageID > 4) {
+        printf("Invalid Package ID. Please book a valid package (1/2/3/4) before making an enquiry.\n");
+        return;
+    }
+
+    printf("Package ID %d confirmed.\n", packageID);
+
+    // Display predefined enquiries
+    printf("\nPlease select the type of enquiry:\n");
+    for (int i = 0; i < numEnquiries; i++) {
+        printf("%d. %s\n", i + 1, enquiries[i]);
+    }
+    printf("Enter your choice (1-%d): ", numEnquiries);
+    scanf("%d", &choice);
+
+    // Validate input
+    if (choice < 1 || choice > numEnquiries) {
+        printf("Invalid choice. Please restart the enquiry process.\n");
+        return;
+    }
+
+    // Handle specific or miscellaneous enquiry
+    if (choice == numEnquiries) {
+        char customEnquiry[256];
+        printf("You selected Miscellaneous.\n");
+        printf("Please describe your enquiry: ");
+        getchar(); // Clear the newline character from the input buffer
+        fgets(customEnquiry, sizeof(customEnquiry), stdin);
+        customEnquiry[strcspn(customEnquiry, "\n")] = '\0'; // Remove newline character
+        printf("Thank you! We have recorded your enquiry: %s\n We will mail you the required information.\n", customEnquiry);
+    } else {
+        printf("You selected: %s\n", enquiries[choice - 1]);
+        printf("We hope that the process of enquiry was smooth! We will mail you the required information.\n");
+    }
+}
